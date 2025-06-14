@@ -1,0 +1,90 @@
+####################################################################################################
+## Modified input file for EM wave propagation through a ferroelectric thin film (based on Hu et al.)
+####################################################################################################
+################################
+####### GENERAL PARAMETERS ######
+#################################
+max_step = 2000
+amr.n_cell = 128 128 256  # Higher resolution in z-direction for slab thickness resolution
+amr.max_grid_size = 128
+amr.blocking_factor = 1
+geometry.dims = 3
+boundary.field_lo = periodic periodic pml
+boundary.field_hi = periodic periodic pml
+geometry.prob_lo = -0.5e-3 -0.5e-3 0.0e-3
+geometry.prob_hi =  0.5e-3  0.5e-3 60.0e-6  # z: 60 microns
+amr.max_level = 0
+
+#################################
+########## CONSTANTS ############
+#################################
+my_constants.z_min = 27.5e-6  # start of ferroelectric film
+my_constants.z_max = 32.5e-6  # end of ferroelectric film (5 um thick)
+my_constants.centerx_1 = 0.0e-3
+my_constants.centery_1 = 0.0e-3
+my_constants.box_length_1 = 2.0e-3
+my_constants.box_width_1  = 2.0e-3
+my_constants.box_height_1 = 5.0e-6
+my_constants.EPR = 100.0  # high dielectric constant for ferroelectric
+
+my_constants.pi = 3.14159265359
+my_constants.c = 299792458.
+my_constants.length = 1.0e-3
+my_constants.wavelength = 30.0e-6  # ~10 THz
+my_constants.rjz = 3.0e-5
+my_constants.TP = 1.0e-13  # short THz Gaussian pulse
+my_constants.flag_none = 0
+my_constants.flag_hs = 1
+my_constants.flag_ss = 2
+
+#################################
+############ NUMERICS ###########
+#################################
+warpx.verbose = 1
+warpx.use_filter = 0
+warpx.cfl = 1.0
+algo.em_solver_medium = macroscopic
+algo.macroscopic_sigma_method = laxwendroff
+macroscopic.sigma_function(x,y,z) = "0.0"
+macroscopic.mu_function(x,y,z) = "1.25663706212e-06"
+
+macroscopic.epsilon_function(x,y,z) = "8.854e-12 + 8.854e-12 * (EPR-1) * (abs(x-centerx_1) <= box_length_1/2) * (abs(y-centery_1) <= box_width_1/2) * (z >= z_min) * (z <= z_max)"
+
+#################################
+############ FIELDS #############
+#################################
+warpx.E_excitation_on_grid_style = "parse_E_excitation_grid_function"
+warpx.Ex_excitation_grid_function(x,y,z,t) = "1.25663706212e-06 * (exp(-(t-3*TP)**2/(2*TP**2))*cos(2*pi*c/wavelength*t)) * (z <= rjz)"
+warpx.Ey_excitation_grid_function(x,y,z,t) = "0.0"
+warpx.Ez_excitation_grid_function(x,y,z,t) = "0.0"
+warpx.Ex_excitation_flag_function(x,y,z) = "flag_ss * (z <= rjz)"
+warpx.Ey_excitation_flag_function(x,y,z) = "flag_none"
+warpx.Ez_excitation_flag_function(x,y,z) = "flag_none"
+
+warpx.B_excitation_on_grid_style = "parse_B_excitation_grid_function"
+warpx.Bx_excitation_grid_function(x,y,z,t) = "0.0"
+warpx.By_excitation_grid_function(x,y,z,t) = "(exp(-(t-3*TP)**2/(2*TP**2))*cos(2*pi*c/wavelength*t)) * (z <= rjz)"
+warpx.Bz_excitation_grid_function(x,y,z,t) = "0.0"
+warpx.Bx_excitation_flag_function(x,y,z) = "flag_none"
+warpx.By_excitation_flag_function(x,y,z) = "flag_ss * (z <= rjz)"
+warpx.Bz_excitation_flag_function(x,y,z) = "flag_none"
+
+
+
+warpx.P_ext_grid_init_style = "default"
+warpx.P_external_grid = 0.0 0.0 0.0
+
+warpx.Px_external_grid_function(x,y,z) = "(abs(x - 0.0) < 0.4e-3) * (abs(y - 0.0) < 0.4e-3) * (z > 20e-6) * (z < 40e-6)"
+warpx.Py_external_grid_function(x,y,z) = "0.0"
+warpx.Pz_external_grid_function(x,y,z) = "(abs(x - 0.0) < 0.4e-3) * (abs(y - 0.0) < 0.4e-3) * (z > 20e-6) * (z < 40e-6)"
+
+ferroe.include_Landau = 1
+ferroe.include_grad = 1
+ferroe.ferroelectric_function(x,y,z) = "(abs(x - 0.0) < 0.4e-3) * (abs(y - 0.0) < 0.4e-3) * (z > 20e-6) * (z < 40e-6)"
+#################################
+########## DIAGNOSTICS ##########
+#################################
+diagnostics.diags_names = plt
+plt.intervals = 10
+plt.diag_type = Full
+plt.fields_to_plot = Ex By epsilon

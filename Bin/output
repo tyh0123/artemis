@@ -1,0 +1,17 @@
+Initializing AMReX (25.05-28-g5181c2798f82)...
+MPI initialized with 1 MPI processes
+MPI initialized with thread support level 3
+Initializing CUDA...
+Multiple GPUs are visible to each MPI rank. Fixing GPU assignment for Perlmutter according to heuristics.
+CUDA initialized with 1 device.
+AMReX (25.05-28-g5181c2798f82) initialized
+WarpX (e5591230906d-dirty)
+
+   _____          __                 .__        
+  /  _  \________/  |_  ____   _____ |__| ______
+ /  /_\  \_  __ \   __\/ __ \ /     \|  |/  ___/
+/    |    \  | \/|  | \  ___/|  Y Y  \  |\___ \
+\____|__  /__|   |__|  \___  >__|_|  /__/____  >
+        \/                 \/      \/        \/ 
+
+Level 0: dt = 7.810881848e-16 ; dx = 7.8125e-06 ; dy = 7.8125e-06 ; dz = 2.34375e-07
