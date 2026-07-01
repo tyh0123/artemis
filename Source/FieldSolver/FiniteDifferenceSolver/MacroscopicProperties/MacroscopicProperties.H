@@ -101,6 +101,12 @@ public:
      /** index to insert the mask */
      int m_npy_k_index = 0;
      int m_npy_k_index2 = 0;
+     /** number of cells in z over which to stamp the npy mask, starting at npy_k_index
+      *  (thickness = 1 reproduces the original single-plane behavior) */
+     int m_npy_k_thickness = 1;
+     /** if nonzero, paint the actual per-pixel value stored in the npy array
+      *  (variable value) instead of using it as a binary 0/1 mask with a constant value */
+     int m_npy_variable_value = 0;
      /** numpy arrays for layer */
      std::string m_sigma_npy_filename;
      std::string m_sigma_npy_filename2;

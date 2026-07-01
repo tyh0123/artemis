@@ -45,6 +45,9 @@ MacroscopicProperties::ReadParameters ()
     // Query mask index
     pp_macroscopic.query("npy_k_index", m_npy_k_index);
     pp_macroscopic.query("npy_k_index2", m_npy_k_index2);
+    // Query mask thickness in z (number of cells) and variable-value mode
+    pp_macroscopic.query("npy_k_thickness", m_npy_k_thickness);
+    pp_macroscopic.query("npy_variable_value", m_npy_variable_value);
 
     // Query input for material conductivity, sigma.
     pp_macroscopic.query("sigma_npy_value", m_sigma_npy_value);
@@ -612,6 +615,11 @@ MacroscopicProperties::InitializeMacroMultiFabFromNumpy (
 
     amrex::IntVect iv = macro_mf->ixType().toIntVect();
 
+    // Copy members to local variables so they can be captured by value in the GPU
+    // lambda below (capturing the members directly would capture the host `this`).
+    const int k_thickness = amrex::max(m_npy_k_thickness, 1);
+    const bool variable_value = (m_npy_variable_value != 0);
+
     for (MFIter mfi(*macro_mf); mfi.isValid(); ++mfi) {
         // we need to loop over ghost cells since the PML algorithm creates temporary grids with valid
         // and ghost regions; some may lay on the interior domain and some may lie outside the domain
@@ -638,8 +646,10 @@ MacroscopicProperties::InitializeMacroMultiFabFromNumpy (
         ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 
             int idx2d;
-            // only overwrite macro value from the gds file if you are in the valid region
-            if (k == npy_k_index) {
+            // only overwrite macro value from the gds file if you are within the
+            // z-slab [npy_k_index, npy_k_index + k_thickness); the same 2D pattern is
+            // stamped on every plane in the slab (k_thickness = 1 -> original single plane)
+            if (k >= npy_k_index && k < npy_k_index + k_thickness) {
 
                 if (i < 0 && j >= 0 && j < dom_size[1]) {
                     // left edge PML
@@ -670,9 +680,18 @@ MacroscopicProperties::InitializeMacroMultiFabFromNumpy (
                     idx2d = i * ny + j;
                 }
 
-                // if the mask value is 1, set macroscopic value to npy_value
-                if (dptr[idx2d] == 1) {
-                    fab(i, j, k) = npy_value;
+                const amrex::Real mask_val = dptr[idx2d];
+                if (variable_value) {
+                    // variable value: paint the actual per-pixel value from the npy
+                    // array wherever it is nonzero (0 -> leave background untouched)
+                    if (mask_val != amrex::Real(0.)) {
+                        fab(i, j, k) = mask_val;
+                    }
+                } else {
+                    // binary mask: where the mask value is 1, set to the constant npy_value
+                    if (mask_val == amrex::Real(1.)) {
+                        fab(i, j, k) = npy_value;
+                    }
                 }
             }
 
